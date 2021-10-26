@@ -1,0 +1,6 @@
+#vscode stuff
+.vscode/
+main
+#files with output for gnuplot
+data.txt
+plotdata.dat
