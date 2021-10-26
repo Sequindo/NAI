@@ -5,12 +5,14 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <any>
 #define RASTRIGRIN_MIN -5.121
 #define RASTRIGRIN_MAX 5.121
 #define HIMMELBLAU_MIN -5
 #define HIMMELBLAU_MAX 5
 
-#define DEFAULT_ITER_VALUE 10000
+#define DEFAULT_ITER_VALUE 3000
+#define DEFAULT_GEN_POINTS_NUMBER 1000
 
 std::random_device rd;  //Will be used to obtain a seed for the random number engine
 std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -119,10 +121,12 @@ int main(int argc, char** argv)
         auto s_global_best = p0;
 
         std::uniform_real_distribution<> u_k(0.0, 1.0);
-
+        if (!f_domain(s_current)) throw std::string("Points "+std::to_string(p0.at(0))+", "+std::to_string(p0.at(1))+" are out of function's domain");
         for(int i=0;i<iterations;i++)
         {
             auto s_next = neighbours(s_current);
+            if(!f_domain(s_next)) throw std::string("Points "+std::to_string(s_next.at(0))+", "+std::to_string(s_next.at(1))+" are out of function's domain");
+
             if(function(s_next) < function(s_current))
             {
                 s_current = s_next;
@@ -130,20 +134,24 @@ int main(int argc, char** argv)
             else
             {
                 double u = u_k(gen);
-                if(u < exp(-abs(function(s_next) - function(s_current)) / temp(i)))
+                if(u < std::exp(-std::abs(function(s_next) - function(s_current)) / temp(i)))
                 {
                     s_current = s_next;
                 }
             }
-            if(s_current > s_global_best)
+            if(function(s_current) < function(s_global_best))
             {
                 s_global_best = s_current;
             }
         }
+        return s_global_best;
     };
+    
     std::function<bool(std::vector<double>)> domain_func = himmelblau_domain;
     std::function<double(std::vector<double>)> optimalization_func = himmelblau;
+
     auto iterations_num = DEFAULT_ITER_VALUE;
+    std::string mhe_func("hc");
     if(argc>2)
     {
         if(argv[1]=="rastrigrin")
@@ -152,24 +160,27 @@ int main(int argc, char** argv)
             optimalization_func = rastrigrin;
         }
         iterations_num = std::stoi(argv[2]);
+        std::string mhe_func = argv[3];
     }
     
     double ss = 0.01;
-
-    for(int it=0;it<1000;it++)
-    {
-        p0 = {distrib_r(gen), distrib_r(gen)};
+    p0 = {distrib_r(gen), distrib_r(gen)};
+    std::vector<double> res;
+    for(int it=0;it<DEFAULT_GEN_POINTS_NUMBER;it++)
+    {  
         try
         {
-            auto res = hill_climb(optimalization_func, domain_func, p0, iterations_num, ss);
-            while(!res.empty())
-            {
-                auto y_arg = res.back();
-                res.pop_back();
-                auto x_arg = res.back();
-                res.pop_back();
-                std::cout << x_arg << " " << y_arg << " " << optimalization_func(std::vector<double>{x_arg, y_arg}) << std::endl;
-            }
+           if(mhe_func=="hc") res = hill_climb(optimalization_func, domain_func, p0, iterations_num, ss);
+           else res = simulated_annealing(optimalization_func, domain_func, p0, iterations_num, [](auto p) {
+                std::normal_distribution<double> n(0.0, 0.3);
+                for (auto& e : p) {
+                    e = e + n(gen);
+                }
+                return p;
+            },
+            [](int k) { return 1000.0 / k; });
+
+            std::cout << it << " " << optimalization_func(res) << std::endl;
         }
         catch(const std::string& str)
         {
