@@ -1,5 +1,6 @@
 #vscode stuff
 .vscode/
+build/
 main
 #files with output for gnuplot
 data.txt
