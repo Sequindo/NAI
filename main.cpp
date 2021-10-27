@@ -166,12 +166,12 @@ int main(int argc, char** argv)
     double ss = 0.01;
     p0 = {distrib_r(gen), distrib_r(gen)};
     std::vector<double> res;
-    for(int it=0;it<DEFAULT_GEN_POINTS_NUMBER;it++)
+    for(int it=0;it<3000;it++)
     {  
         try
         {
-           if(mhe_func=="hc") res = hill_climb(optimalization_func, domain_func, p0, iterations_num, ss);
-           else res = simulated_annealing(optimalization_func, domain_func, p0, iterations_num, [](auto p) {
+           if(mhe_func=="hc") res = hill_climb(optimalization_func, domain_func, p0, it+1, ss);
+           else res = simulated_annealing(optimalization_func, domain_func, p0, it+1, [](auto p) {
                 std::normal_distribution<double> n(0.0, 0.3);
                 for (auto& e : p) {
                     e = e + n(gen);
@@ -189,3 +189,16 @@ int main(int argc, char** argv)
     }
     return 0;
 }
+/* Running from cmdline.
+
+Currently iteration num from cmdline is ignored, as this code is optimized for generating plot for iterations from 1 to 3000.
+./NAI_PJ rastrigrin 100 hc - rastrigrin function, hillclimb algorithm with 100 iterations.
+./NAI_PJ himmelblau 3000 sa - himmelblau function, simulated annealing algorithm with 3000 iterations.
+
+To obtain data for gnuplot:
+./NAI_PJ rastrigrin 100 hc > plotdata.dat
+
+gnuplot -> plot 'plotdata.dat'
+ITERATIONS NUMBER FROM CMDLINE (100 above) IS IGNORED - hc/sa algorithm runs 3000 times for iterations {1...3000}.
+
+*/
